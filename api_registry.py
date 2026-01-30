@@ -74,8 +74,8 @@ STOCK_BASIC_APIS = [
     APIConfig(
         api_name="stk_rewards",
         description="管理层薪酬和持股",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,
+        code_field="ts_code",
         category="stock_basic"
     ),
     APIConfig(
@@ -105,30 +105,35 @@ STOCK_BASIC_APIS = [
         date_field="trade_date",
         category="stock_basic"
     ),
-    APIConfig(
-        api_name="st_list",
-        description="ST股票列表",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_basic"
-    ),
-    APIConfig(
-        api_name="hk_hold_list",
-        description="沪深港通股票列表",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_basic"
-    ),
-    APIConfig(
-        api_name="bj_mapping",
-        description="北交所新旧代码对照",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_basic"
-    ),
-    APIConfig(
-        api_name="stock_basic_history",
-        description="股票历史列表",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_basic"
-    ),
+    # 以下API不存在于tushare文档中，已禁用
+    # APIConfig(
+    #     api_name="st_list",
+    #     description="ST股票列表（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_basic",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="hk_hold_list",
+    #     description="沪深港通股票列表（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_basic",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="bj_mapping",
+    #     description="北交所新旧代码对照（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_basic",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="stock_basic_history",
+    #     description="股票历史列表（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_basic",
+    #     enabled=False
+    # ),
 ]
 
 # =====================================================
@@ -226,15 +231,18 @@ STOCK_QUOTE_APIS = [
         description="周/月线行情(每日更新)",
         chunk_strategy=ChunkStrategy.YEAR,
         date_field="trade_date",
+        required_params={"freq": "W"},  # 必填参数: W=周线, M=月线
         category="stock_quote"
     ),
-    APIConfig(
-        api_name="stk_weekly_monthly_adj",
-        description="周/月线复权行情(每日更新)",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="stock_quote"
-    ),
+    # 注意：stk_weekly_monthly_adj 不存在，应使用 wk_weekly_adj 和 wk_monthly_adj
+    # APIConfig(
+    #     api_name="stk_weekly_monthly_adj",
+    #     description="周/月线复权行情(每日更新)（API不存在，使用wk_weekly_adj和wk_monthly_adj）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="stock_quote",
+    #     enabled=False
+    # ),
     APIConfig(
         api_name="bak_daily",
         description="备用行情",
@@ -282,24 +290,24 @@ STOCK_FINANCE_APIS = [
     APIConfig(
         api_name="income",
         description="利润表",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance",
         priority=1
     ),
     APIConfig(
         api_name="balancesheet",
         description="资产负债表",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance",
         priority=1
     ),
     APIConfig(
         api_name="cashflow",
         description="现金流量表",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance",
         priority=1
     ),
@@ -328,23 +336,23 @@ STOCK_FINANCE_APIS = [
     APIConfig(
         api_name="fina_indicator",
         description="财务指标数据",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance",
         priority=1
     ),
     APIConfig(
         api_name="fina_audit",
         description="财务审计意见",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance"
     ),
     APIConfig(
         api_name="fina_mainbz",
         description="主营业务构成",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要按股票代码分块
+        code_field="ts_code",
         category="stock_finance"
     ),
     APIConfig(
@@ -383,7 +391,8 @@ STOCK_REFERENCE_APIS = [
     APIConfig(
         api_name="pledge_detail",
         description="股权质押明细数据",
-        chunk_strategy=ChunkStrategy.NONE,
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code参数
+        code_field="ts_code",
         category="stock_reference"
     ),
     APIConfig(
@@ -429,15 +438,15 @@ STOCK_SPECIAL_APIS = [
     APIConfig(
         api_name="cyq_perf",
         description="每日筹码及胜率",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code或trade_date
+        code_field="ts_code",
         category="stock_special"
     ),
     APIConfig(
         api_name="cyq_chips",
         description="每日筹码分布",
-        chunk_strategy=ChunkStrategy.DATE,
-        date_field="trade_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code参数
+        code_field="ts_code",
         category="stock_special",
         priority=3  # 数据量大，优先级低
     ),
@@ -558,8 +567,7 @@ STOCK_MONEYFLOW_APIS = [
     APIConfig(
         api_name="moneyflow",
         description="个股资金流向",
-        chunk_strategy=ChunkStrategy.STOCK,
-        date_field="trade_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 正确: 需要ts_code参数
         code_field="ts_code",
         category="stock_moneyflow"
     ),
@@ -615,25 +623,27 @@ STOCK_BILLBOARD_APIS = [
     APIConfig(
         api_name="top_list",
         description="龙虎榜每日明细",
-        chunk_strategy=ChunkStrategy.YEAR,
+        chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需trade_date参数，改为DATE分块
         date_field="trade_date",
         category="stock_billboard"
     ),
     APIConfig(
         api_name="top_inst",
         description="龙虎榜机构明细",
-        chunk_strategy=ChunkStrategy.YEAR,
+        chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需trade_date参数，改为DATE分块
         date_field="trade_date",
         category="stock_billboard"
     ),
     # === 新增打板专题接口 ===
-    APIConfig(
-        api_name="ths_limit_list",
-        description="同花顺涨跌停榜单",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="stock_billboard"
-    ),
+    # 以下API不存在于tushare文档中，已禁用
+    # APIConfig(
+    #     api_name="ths_limit_list",
+    #     description="同花顺涨跌停榜单（API不存在）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="stock_billboard",
+    #     enabled=False
+    # ),
     APIConfig(
         api_name="limit_step",
         description="涨跌停和炸板数据",
@@ -641,28 +651,31 @@ STOCK_BILLBOARD_APIS = [
         date_field="trade_date",
         category="stock_billboard"
     ),
+    # APIConfig(
+    #     api_name="limit_ladder",
+    #     description="涨停股票连板天梯（API不存在）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="stock_billboard",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="limit_strong_ind",
+    #     description="涨停最强板块统计（API不存在）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="stock_billboard",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="hot_money",
+    #     description="市场游资最全名录（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_billboard",
+    #     enabled=False
+    # ),
     APIConfig(
-        api_name="limit_ladder",
-        description="涨停股票连板天梯",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="stock_billboard"
-    ),
-    APIConfig(
-        api_name="limit_strong_ind",
-        description="涨停最强板块统计",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="stock_billboard"
-    ),
-    APIConfig(
-        api_name="hot_money",
-        description="市场游资最全名录",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_billboard"
-    ),
-    APIConfig(
-        api_name="hot_money_detail",
+        api_name="hm_detail",  # 修复: 正确的API名称
         description="游资交易每日明细",
         chunk_strategy=ChunkStrategy.YEAR,
         date_field="trade_date",
@@ -760,18 +773,21 @@ STOCK_CONCEPT_APIS = [
         date_field="trade_date",
         category="stock_concept"
     ),
-    APIConfig(
-        api_name="kpl_subject",
-        description="题材数据（开盘啦）",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_concept"
-    ),
-    APIConfig(
-        api_name="kpl_member",
-        description="题材成分（开盘啦）",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="stock_concept"
-    ),
+    # 以下API不存在于tushare文档中，已禁用
+    # APIConfig(
+    #     api_name="kpl_subject",
+    #     description="题材数据（开盘啦）（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_concept",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="kpl_member",
+    #     description="题材成分（开盘啦）（API不存在）",
+    #     chunk_strategy=ChunkStrategy.NONE,
+    #     category="stock_concept",
+    #     enabled=False
+    # ),
 ]
 
 # =====================================================
@@ -788,8 +804,8 @@ INDEX_APIS = [
     APIConfig(
         api_name="index_daily",
         description="指数日线行情",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code参数
+        code_field="ts_code",
         category="index",
         priority=1
     ),
@@ -857,13 +873,13 @@ INDEX_APIS = [
     ),
     # === 新增指数接口 ===
     APIConfig(
-        api_name="index_member_sw",
+        api_name="index_member_all",  # 修复: 正确的API名称
         description="申万行业成分（分级）",
         chunk_strategy=ChunkStrategy.NONE,
         category="index"
     ),
     APIConfig(
-        api_name="ci_member",
+        api_name="ci_index_member",  # 修复: 正确的API名称
         description="中信行业成分",
         chunk_strategy=ChunkStrategy.NONE,
         category="index"
@@ -907,8 +923,7 @@ ETF_APIS = [
     APIConfig(
         api_name="fund_daily",
         description="基金日线行情",
-        chunk_strategy=ChunkStrategy.STOCK,
-        date_field="trade_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 正确: 需要ts_code或trade_date
         code_field="ts_code",
         category="etf",
         priority=1
@@ -923,17 +938,14 @@ ETF_APIS = [
     APIConfig(
         api_name="fund_nav",
         description="基金净值",
-        chunk_strategy=ChunkStrategy.STOCK,
-        date_field="nav_date",
+        chunk_strategy=ChunkStrategy.STOCK,  # 正确: 需要ts_code或nav_date
         code_field="ts_code",
-        start_date_param="start_date",
-        end_date_param="end_date",
         category="etf"
     ),
     APIConfig(
         api_name="fund_div",
         description="基金分红",
-        chunk_strategy=ChunkStrategy.STOCK,
+        chunk_strategy=ChunkStrategy.STOCK,  # 正确: 需要ts_code等参数之一
         code_field="ts_code",
         category="etf"
     ),
@@ -1030,18 +1042,21 @@ FUTURES_APIS = [
         category="futures"
     ),
     # === 新增期货接口 ===
-    APIConfig(
-        api_name="nh_index",
-        description="南华期货指数行情",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="futures"
-    ),
+    # 注意：nh_index 不是独立API，南华期货指数应使用 index_daily
+    # APIConfig(
+    #     api_name="nh_index",
+    #     description="南华期货指数行情（使用index_daily代替）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="futures",
+    #     enabled=False
+    # ),
     APIConfig(
         api_name="fut_weekly_monthly",
         description="期货周/月线行情(每日更新)",
         chunk_strategy=ChunkStrategy.YEAR,
         date_field="trade_date",
+        required_params={"freq": "W"},  # 修复: 必填参数 W=周线, M=月线
         category="futures"
     ),
     APIConfig(
@@ -1051,13 +1066,15 @@ FUTURES_APIS = [
         date_field="trade_date",
         category="futures"
     ),
-    APIConfig(
-        api_name="fut_limit",
-        description="期货合约涨跌停价格",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="futures"
-    ),
+    # 注意：fut_limit 可能不存在，需验证正确API名称
+    # APIConfig(
+    #     api_name="fut_limit",
+    #     description="期货合约涨跌停价格（API名称需验证）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="futures",
+    #     enabled=False
+    # ),
     # 高积分接口 - 禁用
     APIConfig(
         api_name="ft_mins",
@@ -1140,26 +1157,22 @@ CB_APIS = [
         category="cb"
     ),
     # === 新增债券接口 ===
-    APIConfig(
-        api_name="cb_price_chg",
-        description="可转债转股价变动",
-        chunk_strategy=ChunkStrategy.NONE,
-        category="cb"
-    ),
-    APIConfig(
-        api_name="yc_cb",
-        description="柜台流通式债券报价",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="cb"
-    ),
-    APIConfig(
-        api_name="cn_yld",
-        description="国债收益率曲线",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="trade_date",
-        category="cb"
-    ),
+    # 注释原因: yc_cb 接口超2000行限制，暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="yc_cb",
+    #     description="柜台流通式债券报价",
+    #     chunk_strategy=ChunkStrategy.DATE,  # 修复: YEAR策略会超2000行限制
+    #     date_field="trade_date",
+    #     category="cb"
+    # ),
+    # 注释原因: yc 接口暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="yc",  # 修复: 正确的API名称
+    #     description="国债收益率曲线",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="trade_date",
+    #     category="cb"
+    # ),
     APIConfig(
         api_name="eco_cal",
         description="全球财经事件",
@@ -1222,7 +1235,7 @@ HK_APIS = [
         priority=1
     ),
     APIConfig(
-        api_name="hk_adj_factor",
+        api_name="hk_adjfactor",  # 修复: 正确的API名称
         description="港股复权因子",
         chunk_strategy=ChunkStrategy.YEAR,
         date_field="trade_date",
@@ -1236,13 +1249,14 @@ HK_APIS = [
         date_field="trade_date",
         category="hk"
     ),
-    APIConfig(
-        api_name="hk_income",
-        description="港股利润表",
-        chunk_strategy=ChunkStrategy.QUARTER,
-        date_field="end_date",
-        category="hk"
-    ),
+    # 注释原因: hk_income 接口权限限制（每天最多访问2次），暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="hk_income",
+    #     description="港股利润表",
+    #     chunk_strategy=ChunkStrategy.QUARTER,
+    #     date_field="end_date",
+    #     category="hk"
+    # ),
     APIConfig(
         api_name="hk_balancesheet",
         description="港股资产负债表",
@@ -1483,61 +1497,69 @@ NEWS_APIS = [
 # =====================================================
 INDUSTRY_APIS = [
     APIConfig(
-        api_name="tw_elec_income",
+        api_name="tmt_twincome",  # 修复: 正确的API名称
         description="台湾电子产业月营收",
         chunk_strategy=ChunkStrategy.YEAR,
-        date_field="report_date",
+        date_field="date",
+        required_params={"item": "1"},  # 必填参数
         category="industry"
     ),
     APIConfig(
-        api_name="tw_elec_income_detail",
+        api_name="tmt_twincomedetail",  # 修复: 正确的API名称
         description="台湾电子产业月营收明细",
         chunk_strategy=ChunkStrategy.YEAR,
-        date_field="report_date",
-        category="industry"
-    ),
-    APIConfig(
-        api_name="bo_monthly",
-        description="电影月度票房",
-        chunk_strategy=ChunkStrategy.YEAR,
         date_field="date",
         category="industry"
     ),
-    APIConfig(
-        api_name="bo_weekly",
-        description="电影周度票房",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="date",
-        category="industry"
-    ),
-    APIConfig(
-        api_name="bo_daily",
-        description="电影日度票房",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="date",
-        category="industry"
-    ),
-    APIConfig(
-        api_name="bo_cinema",
-        description="影院日度票房",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="date",
-        category="industry"
-    ),
-    APIConfig(
-        api_name="film_record",
-        description="全国电影剧本备案数据",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="ann_date",
-        category="industry"
-    ),
-    APIConfig(
-        api_name="tv_record",
-        description="全国电视剧备案公示数据",
-        chunk_strategy=ChunkStrategy.YEAR,
-        date_field="ann_date",
-        category="industry"
-    ),
+    # 注释原因: bo_monthly 接口参数错误（需要date参数），暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="bo_monthly",
+    #     description="电影月度票房",
+    #     chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需date参数，改为DATE分块
+    #     date_field="date",
+    #     category="industry"
+    # ),
+    # 注释原因: bo_weekly 接口暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="bo_weekly",
+    #     description="电影周度票房",
+    #     chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需date参数，改为DATE分块
+    #     date_field="date",
+    #     category="industry"
+    # ),
+    # 注释原因: bo_daily 接口参数错误（需要date参数），暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="bo_daily",
+    #     description="电影日度票房",
+    #     chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需date参数，改为DATE分块
+    #     date_field="date",
+    #     category="industry"
+    # ),
+    # 注释原因: bo_cinema 接口参数错误（需要date参数），暂时禁用，以后可能会用到
+    # APIConfig(
+    #     api_name="bo_cinema",
+    #     description="影院日度票房",
+    #     chunk_strategy=ChunkStrategy.DATE,  # 修复: 必需date参数，改为DATE分块
+    #     date_field="date",
+    #     category="industry"
+    # ),
+    # 以下API不存在于tushare文档中，已禁用
+    # APIConfig(
+    #     api_name="film_record",
+    #     description="全国电影剧本备案数据（API不存在）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="ann_date",
+    #     category="industry",
+    #     enabled=False
+    # ),
+    # APIConfig(
+    #     api_name="tv_record",
+    #     description="全国电视剧备案公示数据（API不存在）",
+    #     chunk_strategy=ChunkStrategy.YEAR,
+    #     date_field="ann_date",
+    #     category="industry",
+    #     enabled=False
+    # ),
 ]
 
 # =====================================================
