@@ -208,7 +208,7 @@ STOCK_QUOTE_APIS = [
     APIConfig(
         api_name="ggt_top10",
         description="港股通十大成交股",
-        chunk_strategy=ChunkStrategy.YEAR,
+        chunk_strategy=ChunkStrategy.DATE,
         date_field="trade_date",
         category="stock_quote"
     ),
@@ -438,17 +438,19 @@ STOCK_SPECIAL_APIS = [
     APIConfig(
         api_name="cyq_perf",
         description="每日筹码及胜率",
-        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code或trade_date
+        chunk_strategy=ChunkStrategy.STOCK,  # 注意：此接口要求 ts_code(必填)+日期范围
         code_field="ts_code",
-        category="stock_special"
+        category="stock_special",
+        enabled=False  # 禁用：需要特殊参数处理(ts_code+start_date+end_date)，且数据量极大
     ),
     APIConfig(
         api_name="cyq_chips",
         description="每日筹码分布",
-        chunk_strategy=ChunkStrategy.STOCK,  # 修复: 需要ts_code参数
+        chunk_strategy=ChunkStrategy.STOCK,  # 注意：此接口要求 ts_code(必填)+日期范围
         code_field="ts_code",
         category="stock_special",
-        priority=3  # 数据量大，优先级低
+        priority=3,  # 数据量大，优先级低
+        enabled=False  # 禁用：需要特殊参数处理(ts_code+start_date+end_date)，且数据量极大(单次2000行)
     ),
     APIConfig(
         api_name="ccass_hold",
@@ -515,7 +517,7 @@ STOCK_SPECIAL_APIS = [
         category="stock_special"
     ),
     APIConfig(
-        api_name="ah_comparision",
+        api_name="stk_ah_comparison",
         description="AH股比价",
         chunk_strategy=ChunkStrategy.DATE,
         date_field="trade_date",

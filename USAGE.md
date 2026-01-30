@@ -93,7 +93,7 @@ python download_all.py
    - 按季末日期（0331, 0630, 0930, 1231）分块
    
 4. **DATE（按日分块）**：高频数据
-   - 示例：cyq_chips, ah_comparision
+   - 示例：cyq_chips, stk_ah_comparison
    - 仅下载2020年后数据以控制数据量
 
 ### 断点续传
