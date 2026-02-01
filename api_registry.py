@@ -1509,8 +1509,9 @@ INDUSTRY_APIS = [
     APIConfig(
         api_name="tmt_twincomedetail",  # 修复: 正确的API名称
         description="台湾电子产业月营收明细",
-        chunk_strategy=ChunkStrategy.YEAR,
+        chunk_strategy=ChunkStrategy.NONE,  # 改为不分块，因为接口需要item和symbol参数
         date_field="date",
+        required_params={"item": "8", "symbol": "6156"},  # 使用文档示例中的参数
         category="industry"
     ),
     # 注释原因: bo_monthly 接口参数错误（需要date参数），暂时禁用，以后可能会用到
