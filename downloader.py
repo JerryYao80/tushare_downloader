@@ -71,24 +71,28 @@ class TushareDownloader:
         logger.info(f"Tushare API initialized with URL: {config.TUSHARE_API_URL}")
         
     def _get_file_path(
-        self, 
-        api_name: str, 
+        self,
+        api_name: str,
         year: Optional[int] = None,
         quarter: Optional[str] = None,
-        date: Optional[str] = None
+        date: Optional[str] = None,
+        ts_code: Optional[str] = None
     ) -> Path:
         """
         获取数据文件路径
-        
+
         按照分区目录结构存储:
         - 无分块: {data_dir}/{api_name}/data.parquet
         - 按年: {data_dir}/{api_name}/year={year}/data.parquet
         - 按季度: {data_dir}/{api_name}/quarter={quarter}/data.parquet
         - 按日期: {data_dir}/{api_name}/date={date}/data.parquet
+        - 按代码: {data_dir}/{api_name}/ts_code={ts_code}/data.parquet
         """
         base_path = self.data_dir / api_name
-        
-        if year is not None:
+
+        if ts_code is not None:
+            return base_path / f"ts_code={ts_code}" / "data.parquet"
+        elif year is not None:
             return base_path / f"year={year}" / "data.parquet"
         elif quarter is not None:
             return base_path / f"quarter={quarter}" / "data.parquet"
@@ -209,16 +213,40 @@ class TushareDownloader:
         return dates
     
     def _get_stock_list(self, category: str) -> List[str]:
-        """获取股票/基金/期货列表"""
+        """获取股票/基金/指数列表"""
         try:
             if "fund" in category or "etf" in category:
                 df = self.pro.fund_basic(market="E")
                 return df['ts_code'].tolist() if df is not None and len(df) > 0 else []
+            elif "index" in category:
+                # 优先从本地 index_basic 文件读取指数代码
+                local_index_file = self.data_dir / "index_basic" / "data.parquet"
+                if local_index_file.exists():
+                    try:
+                        df = pd.read_parquet(local_index_file, engine='pyarrow')
+                        if df is not None and len(df) > 0 and 'ts_code' in df.columns:
+                            codes = df['ts_code'].tolist()
+                            logger.info(f"Loaded {len(codes)} index codes from local file: {local_index_file}")
+                            return codes
+                    except Exception as e:
+                        logger.warning(f"Failed to read local index_basic file: {e}")
+
+                # 回退到 API 调用
+                markets = ["SSE", "SZSE", "MSCI", "CSI", "CICC", "SW", "OTH"]
+                all_codes = []
+                for market in markets:
+                    try:
+                        df = self.pro.index_basic(market=market)
+                        if df is not None and len(df) > 0:
+                            all_codes.extend(df['ts_code'].tolist())
+                    except Exception as e:
+                        logger.debug(f"Failed to fetch index list for market {market}: {e}")
+                return all_codes
             else:
                 df = self.pro.stock_basic()
                 return df['ts_code'].tolist() if df is not None and len(df) > 0 else []
         except Exception as e:
-            logger.warning(f"Failed to fetch stock/fund list for category {category}: {e}")
+            logger.warning(f"Failed to fetch stock/fund/index list for category {category}: {e}")
             return []
         
     def download_api_by_stock(
@@ -228,34 +256,75 @@ class TushareDownloader:
     ) -> Tuple[bool, int]:
         """
         按股票/基金代码下载 API 数据
-        
+
         Returns:
             (成功与否, 行数)
         """
         api_name = api_config.api_name
         code_field = api_config.code_field or "ts_code"
-        file_path = self._get_file_path(api_name, date=ts_code)
-        
+        file_path = self._get_file_path(api_name, ts_code=ts_code)
+
         if self._file_exists(file_path):
             self.progress.record_skip(api_name, {code_field: ts_code}, "File exists")
             return True, 0
-            
+
         params = api_config.required_params.copy()
         params[code_field] = ts_code
-        
+
         df = self._call_api_with_retry(api_name, **params)
-        
+
         if df is None:
             self.progress.record_failure(api_name, params, "API call failed")
             return False, 0
-            
+
         if len(df) == 0:
             self._save_to_parquet(pd.DataFrame(), file_path)
             self.progress.record_success(api_name, params, 0)
             return True, 0
-            
+
+        # 检测是否达到 8000 行限制（Tushare API 单次返回上限）
+        if len(df) >= 8000:
+            logger.warning(
+                f"[{api_name}][{ts_code}] Hit 8000 row limit, switching to yearly chunks"
+            )
+            # 对于指数数据，使用更合理的年份范围
+            # 如果是 index_daily 类的接口，从数据中的最早日期推断开始年份
+            if len(df) > 0 and 'trade_date' in df.columns:
+                # 从现有数据的最早日期开始，避免下载过多无用数据
+                min_date = df['trade_date'].min()
+                start_year = int(str(min_date)[:4])
+                # 确保不会漏掉之前的数据（因为第一次调用只返回最近8000行）
+                # 使用更合理的起始年份（至少10年前）
+                reasonable_start = max(config.START_YEAR, datetime.now().year - 15)
+                start_year = min(start_year, reasonable_start)
+            else:
+                start_year = max(config.START_YEAR, datetime.now().year - 10)
+
+            all_yearly_data = []
+            for year in range(start_year, config.END_YEAR + 1):
+                year_params = api_config.required_params.copy()
+                year_params[code_field] = ts_code
+                year_params["start_date"] = f"{year}0101"
+                year_params["end_date"] = f"{year}1231"
+
+                year_df = self._call_api_with_retry(api_name, **year_params)
+                if year_df is not None and len(year_df) > 0:
+                    all_yearly_data.append(year_df)
+
+                    # 如果单年数据也超过 8000 行，进一步按月拆分
+                    if len(year_df) >= 8000:
+                        logger.error(
+                            f"[{api_name}][{ts_code}][{year}] Still hit 8000 row limit! "
+                            "Data may be incomplete."
+                        )
+
+            if all_yearly_data:
+                df = pd.concat(all_yearly_data, ignore_index=True)
+            else:
+                df = pd.DataFrame()
+
         self.validator.validate_dataframe(df, api_name)
-        
+
         if self._save_to_parquet(df, file_path):
             self.progress.record_success(api_name, params, len(df))
             logger.info(f"[{api_name}][{ts_code}] Downloaded {len(df)} rows")
